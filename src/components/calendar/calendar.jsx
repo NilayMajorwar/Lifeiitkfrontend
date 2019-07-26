@@ -1,16 +1,17 @@
-import React, { Component } from "react";
-import { Button, Modal } from "@material-ui/core";
-import FilterBox from "./filterModal";
+import React, { Component } from 'react';
+import { Button, Modal } from '@material-ui/core';
+import FilterBox from './filterModal';
 import {
   Calendar as CalendarBox,
-  Views,
-  momentLocalizer
-} from "react-big-calendar";
-import moment from "moment";
-import "react-big-calendar/lib/css/react-big-calendar.css";
-import FeedPost from "../feed/feedPost.jsx";
-import axios from "axios";
-import { API_ROOT } from "../../api-config";
+  momentLocalizer,
+  Views
+} from 'react-big-calendar';
+import moment from 'moment';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import FeedPost from '../feed/feedPost.jsx';
+import axios from 'axios';
+import { API_ROOT } from '../../api-config';
+const colors = require('./colors.json');
 
 const localizer = momentLocalizer(moment);
 let allViews = Object.keys(Views).map(k => Views[k]);
@@ -18,35 +19,32 @@ let allViews = Object.keys(Views).map(k => Views[k]);
 const ColoredDateCellWrapper = ({ children }) =>
   React.cloneElement(React.Children.only(children), {
     style: {
-      backgroundColor: "lightblue"
+      backgroundColor: 'lightblue'
     }
   });
 
-function stringToColor(string) {
-  let hash = 0;
-  let i;
-  for (i = 0; i < string.length; i += 1) {
-    hash = string.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  let colour = "#";
-
-  for (i = 0; i < 3; i += 1) {
-    const value = (hash >> (i * 8)) & 0xff;
-    colour += `00${value.toString(16)}`.substr(-2);
-  }
-  return colour;
-}
+const getTextColor = color => {
+  const r = parseInt(color.substr(1, 2), 16);
+  const g = parseInt(color.substr(3, 2), 16);
+  const b = parseInt(color.substr(5, 2), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  const textColor = yiq >= 128 ? 'black' : 'white';
+  return textColor;
+};
 
 const toCalendarPost = event => {
-  const startDt = new moment(event.date+event.start_time, 'YYYY-MM-DDHH:mm:ss');
-  const endDt = new moment(event.date+event.end_time,'YYYY-MM-DDHH:mm:ss');
+  const startDt = new moment(
+    event.date + event.start_time,
+    'YYYY-MM-DDHH:mm:ss'
+  );
+  const endDt = new moment(event.date + event.end_time, 'YYYY-MM-DDHH:mm:ss');
   const clPost = {
     event_id: event.event_id,
     title: event.title,
     start: startDt.toDate(),
     end: endDt.toDate(),
-    allDay: event.day_long
+    allDay: event.day_long,
+    color: colors[event.tags[0].tag_id]
   };
   return clPost;
 };
@@ -54,18 +52,18 @@ const toCalendarPost = event => {
 const fetchedPost = i => {
   return {
     event_id: 1,
-    title: "Lecture on Bash and Git",
+    title: 'Lecture on Bash and Git',
     summary:
-      "This lecture will cover the fundamentals of bash scripting, and will also teach you about the Git version control system.",
+      'This lecture will cover the fundamentals of bash scripting, and will also teach you about the Git version control system.',
     date: '2019-08-15',
-    tags: [{ name: "Programming Club", tag_id: 1, description: "SnT Club" }],
-    start_time: "18:30:00",
-    end_time: "22:00:00",
-    venue: "RM101",
+    tags: [{ name: 'Programming Club', tag_id: 1, description: 'SnT Club' }],
+    start_time: '18:30:00',
+    end_time: '22:00:00',
+    venue: 'RM101',
     day_long: false,
     description:
       "The topics covered would briefly include introduction to terminal, package managers and the use of Git. It's useful to be familiar with the terminal and the Linux environment for any coding task. Version control tools like Git helps in better flow control and collaboration of code, it is an essential skill.",
-    hash_tags: ["PClub", "Git", "Bash"]
+    hash_tags: ['PClub', 'Git', 'Bash']
   };
 };
 
@@ -79,7 +77,7 @@ class Calendar extends Component {
       filterBoxOpen: false,
       eventBoxOpen: false,
       tags: [],
-      selectedTags : [],
+      selectedTags: []
     };
   }
 
@@ -88,6 +86,7 @@ class Calendar extends Component {
     const dt = this.state.date;
     this.getItems(dt.getMonth() + 1, dt.getFullYear());
     /* OR USE HARDCODED EVENTS */
+    // This does not work, though.
     // let events = new Array(4).fill(1).map((val, index) => fetchedPost(index));
   }
 
@@ -115,19 +114,18 @@ class Calendar extends Component {
         });
         const tags = {};
         events = events.map(event => {
-          event.tags.forEach(tag => {
+          const tag = { ...event.tags[0] };
+          if (!tags[tag.tag_id]) {
             tag.isSelected = true;
-            if (!tags[tag.tag_id]) {
-              tag.color = stringToColor(tag.name);
-              tags[tag.tag_id] = tag;
-            }
-          });
+            tag.color = colors[tag.tag_id];
+            tags[tag.tag_id] = tag;
+          }
           return event;
         });
         this.setState({
           allEvents: events,
           filteredEvents: events,
-          tags: Object.values(tags),
+          tags: Object.values(tags)
         });
       })
       .catch(err => console.log(err));
@@ -144,7 +142,7 @@ class Calendar extends Component {
     this.setState({ date: newDt });
   };
 
-  filterTags = (tag) => {
+  filterTags = tag => {
     const name = tag;
     const newTags = [...this.state.tags];
     const index = newTags.findIndex(t => t.name === name);
@@ -155,8 +153,7 @@ class Calendar extends Component {
     });
   };
 
-  handleDelete = (tag) =>
-  {
+  handleDelete = tag => {
     const newTags = [...this.state.tags];
     const index = newTags.findIndex(t => t.name === tag.name);
     newTags[index].isSelected = false;
@@ -177,19 +174,17 @@ class Calendar extends Component {
     return filteredEvents;
   };
 
-  onEventClick = (e, event) => {
+  onEventClick = e => {
     const selEvent = this.state.allEvents.find(
       ev => ev.event_id === e.event_id
     );
     this.setState({ currPost: selEvent, eventBoxOpen: true });
   };
 
-  
-
   render() {
     return (
       <React.Fragment>
-        <div style={{ padding: "5px", textAlign: "right" }}>
+        <div style={{ padding: '5px', textAlign: 'right' }}>
           <Button
             onClick={this.toggleFilterBox}
             variant="contained"
@@ -201,6 +196,12 @@ class Calendar extends Component {
 
         <CalendarBox
           events={this.state.filteredEvents.map(event => toCalendarPost(event))}
+          eventPropGetter={event => ({
+            style: {
+              backgroundColor: event.color,
+              color: getTextColor(event.color)
+            }
+          })}
           views={allViews}
           step={60}
           showMultiDayTimes
@@ -223,9 +224,9 @@ class Calendar extends Component {
           open={this.state.eventBoxOpen}
           onClose={this.toggleEventBox}
           style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center"
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
           }}
         >
           <div>
@@ -236,5 +237,5 @@ class Calendar extends Component {
     );
   }
 }
-// ReactDOM.render(routing, document.getElementById("root"));
+
 export default Calendar;
